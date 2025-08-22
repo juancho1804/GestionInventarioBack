@@ -1,12 +1,14 @@
 package com.manguerasjc.productservice.services.DTO.request;
 
 
+import org.springframework.web.multipart.MultipartFile;
+
 public record ProductRequestDTO(
         Long categoryId,
-        Long sizeId,
-        Long materialId,
         String color,
         Long brandId,
         double price,
-        int quantity) {
+        MultipartFile image,
+        ProductVariantRequestDTO productVariantRequestDTO
+        ) {
 }

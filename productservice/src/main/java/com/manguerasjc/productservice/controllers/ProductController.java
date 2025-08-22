@@ -1,12 +1,19 @@
 package com.manguerasjc.productservice.controllers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.manguerasjc.productservice.services.DTO.request.ProductRequestDTO;
+import com.manguerasjc.productservice.services.DTO.request.ProductVariantRequestDTO;
 import com.manguerasjc.productservice.services.DTO.response.ProductResponseDTO;
 import com.manguerasjc.productservice.services.usercases.IProductService;
 import com.manguerasjc.productservice.services.usercases.ProductService;
+import jdk.jfr.ContentType;
+import org.hibernate.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -17,10 +24,23 @@ public class ProductController {
     @Autowired
     private IProductService productService;
 
-    @PostMapping
-    public ProductResponseDTO createProduct(@RequestBody ProductRequestDTO productRequestDTO) {
-        return productService.addProduct(productRequestDTO);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ProductResponseDTO addProduct(
+            @RequestParam("categoryId") Long categoryId,
+            @RequestParam("color") String color,
+            @RequestParam("brandId") Long brandId,
+            @RequestParam("price") Double price,
+            @RequestPart("image") MultipartFile image,
+            @RequestPart("productVariantRequest") String productVariantRequestJson
+    ) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        ProductVariantRequestDTO productVariantRequest =
+                mapper.readValue(productVariantRequestJson, ProductVariantRequestDTO.class);
+
+        ProductRequestDTO dto = new ProductRequestDTO(categoryId, color, brandId, price, image, productVariantRequest);
+        return productService.addProduct(dto);
     }
+
 
     @PutMapping
     public ProductResponseDTO updateProduct(@RequestParam Long id,@RequestBody ProductRequestDTO productRequestDTO) {

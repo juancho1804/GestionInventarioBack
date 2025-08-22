@@ -2,18 +2,24 @@ package com.manguerasjc.productservice.services.usercases;
 
 import com.manguerasjc.productservice.dataAccess.domain.Category;
 import com.manguerasjc.productservice.dataAccess.domain.Product;
+import com.manguerasjc.productservice.dataAccess.domain.ProductVariant;
+import com.manguerasjc.productservice.dataAccess.domain.Size;
 import com.manguerasjc.productservice.dataAccess.repositories.*;
 import com.manguerasjc.productservice.services.DTO.mapper.ProductMapper;
 import com.manguerasjc.productservice.services.DTO.request.ProductRequestDTO;
 import com.manguerasjc.productservice.services.DTO.response.ProductResponseDTO;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,15 +33,38 @@ public class ProductService implements IProductService{
     @Autowired
     ISizeRepository sizeRepository;
     @Autowired
-    IMaterialRepository materialRepository;
-    @Autowired
     ProductMapper productMapper;
 
+    public String imageToUrl(MultipartFile image) throws IOException {
+        // Nombre único para evitar choques
+        String fileName = System.currentTimeMillis() + "_" + image.getOriginalFilename();
 
+        // Ruta relativa (carpeta en la raíz del proyecto)
+        Path uploadDir = Paths.get("uploads");
+        if (!Files.exists(uploadDir)) {
+            Files.createDirectories(uploadDir); // crea la carpeta si no existe
+        }
 
+        Path path = uploadDir.resolve(fileName);
+        Files.copy(image.getInputStream(), path);
+
+        // Devuelvo la URL accesible por el frontend
+        return "/uploads/" + fileName;
+    }
+
+    @Transactional
     @Override
     public ProductResponseDTO addProduct(ProductRequestDTO productRequestDTO) {
+
         Product product = productMapper.toEntity(productRequestDTO);
+        try{
+
+            if(productRequestDTO.image()!=null && !productRequestDTO.image().isEmpty()){
+                product.setUrlImage(imageToUrl(productRequestDTO.image()));
+            }
+        }catch (IOException e){
+            throw new RuntimeException("Error al guardar la imagen",e);
+        }
 
         // Validar si categoría existe
         product.setCategory(
@@ -43,17 +72,23 @@ public class ProductService implements IProductService{
                         orElseThrow(() -> new EntityNotFoundException("Categoria no encontrada"))
         );
 
-        // Validar si la talla existe
-        product.setSize(
-                sizeRepository.findById(productRequestDTO.sizeId()).
-                        orElseThrow(() -> new EntityNotFoundException("Talla no encontrada"))
-        );
+        Map<Long,Integer> variantesDTO = productRequestDTO.productVariantRequestDTO().getVariantes();
+        List<ProductVariant> productVariants = new ArrayList<>();
 
-        // Validar si el material existe
-        product.setMaterial(
-                materialRepository.findById(productRequestDTO.materialId()).
-                        orElseThrow(() -> new EntityNotFoundException("Material no encontrado"))
-        );
+
+        for(Map.Entry<Long, Integer> entry : variantesDTO.entrySet()){
+
+            Size size =sizeRepository.findById(entry.getKey()).orElseThrow(() -> new EntityNotFoundException("Talla no encontrada"));
+            ProductVariant productVariant = new ProductVariant();
+            productVariant.setSize(size);
+            productVariant.setStock(entry.getValue());
+            productVariants.add(productVariant);
+            System.out.println("Talla: " + entry.getKey()+", Stock: " + entry.getValue());
+            productVariant.setProduct(product);
+        }
+
+        product.setVariants(productVariants);
+
 
         // Validar si la marca existe
         product.setBrand(
@@ -86,23 +121,12 @@ public class ProductService implements IProductService{
                         orElseThrow(() -> new EntityNotFoundException("Categoria no encontrada"))
         );
 
-        // Validar si la talla existe
-        productEntity.setSize(
-                sizeRepository.findById(productRequestDTO.sizeId()).
-                        orElseThrow(() -> new EntityNotFoundException("Talla no encontrada"))
-        );
-
-        // Validar si el material existe
-        productEntity.setMaterial(
-                materialRepository.findById(productRequestDTO.materialId()).
-                        orElseThrow(() -> new EntityNotFoundException("Material no encontrado"))
-        );
-
         // Validar si la marca existe
         productEntity.setBrand(
                 brandRepository.findById(productRequestDTO.brandId()).
                         orElseThrow(() -> new EntityNotFoundException("Marca no encontrada"))
         );
+
 
         productEntity.setName(productEntity.getBrand().getBrand()+productEntity.getColor()+productEntity.getId());
 

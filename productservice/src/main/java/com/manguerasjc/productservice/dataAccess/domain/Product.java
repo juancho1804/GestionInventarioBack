@@ -5,6 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -24,12 +28,6 @@ public class Product {
     @Column
     private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Size size;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Material material;
-
     @Column(nullable = false)
     private String color;
 
@@ -40,7 +38,11 @@ public class Product {
     private double price;
 
     @Column(nullable = false)
-    private int quantity;
+    private String urlImage;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductVariant>variants = new ArrayList<>();
+
 
 
 }
