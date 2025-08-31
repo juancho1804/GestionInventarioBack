@@ -38,4 +38,18 @@ public class GlobalDefaultExceptionHandler {
         ApiError error = new ApiError(409, "DuplicateValue",ex.getMessage(), request.getRequestURI());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
+
+
+    @ExceptionHandler(StockNoValidoException.class)
+    public ResponseEntity<ApiError> handleOutOfStock(StockNoValidoException ex,HttpServletRequest request) {
+
+        ApiError apiError = new ApiError(
+                HttpStatus.BAD_REQUEST.value(),
+                "Stock error",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiError);
+    }
 }

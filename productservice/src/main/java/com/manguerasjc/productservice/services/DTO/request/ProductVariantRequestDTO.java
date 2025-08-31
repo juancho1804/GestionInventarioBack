@@ -6,5 +6,5 @@ import java.util.Map;
 
 @Data
 public class ProductVariantRequestDTO {
-    Map<Long, Integer>variantes;
+    Map<Long, Integer>variants;
 }
