@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-
 @RestController
 @RequestMapping("/products")
 public class ProductController {
@@ -26,25 +25,38 @@ public class ProductController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ProductResponseDTO addProduct(
-            @RequestParam("categoryId") Long categoryId,
-            @RequestParam("color") String color,
-            @RequestParam("brandId") Long brandId,
-            @RequestParam("price") Double price,
-            @RequestPart("image") MultipartFile image,
-            @RequestPart("productVariantRequest") String productVariantRequestJson
+            @RequestParam(value = "categoryId") Long categoryId,
+            @RequestParam(value = "color") String color,
+            @RequestParam(value = "brandId") Long brandId,
+            @RequestParam(value = "price") Double price,
+            @RequestPart(value = "image", required = false) MultipartFile image,
+            @RequestPart(value = "productVariantRequest") String productVariantRequest
+    ) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        ProductVariantRequestDTO productVariantRequestDTO =
+                mapper.readValue(productVariantRequest, ProductVariantRequestDTO.class);
+
+        ProductRequestDTO dto = new ProductRequestDTO(categoryId, color, brandId, price, image, productVariantRequestDTO);
+
+        return productService.addProduct(dto);
+    }
+
+
+    @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ProductResponseDTO updateProduct(@RequestParam Long id,
+                                            @RequestParam("categoryId") Long categoryId,
+                                            @RequestParam("color") String color,
+                                            @RequestParam("brandId") Long brandId,
+                                            @RequestParam("price") Double price,
+                                            @RequestPart(value = "image", required = false) MultipartFile image,
+                                            @RequestPart("productVariantRequest") String productVariantRequestJson
     ) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         ProductVariantRequestDTO productVariantRequest =
                 mapper.readValue(productVariantRequestJson, ProductVariantRequestDTO.class);
 
         ProductRequestDTO dto = new ProductRequestDTO(categoryId, color, brandId, price, image, productVariantRequest);
-        return productService.addProduct(dto);
-    }
-
-
-    @PutMapping
-    public ProductResponseDTO updateProduct(@RequestParam Long id,@RequestBody ProductRequestDTO productRequestDTO) {
-        return productService.updateProduct(id, productRequestDTO);
+        return productService.updateProduct(id,dto);
     }
 
     @GetMapping

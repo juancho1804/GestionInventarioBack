@@ -12,6 +12,7 @@ import com.manguerasjc.productservice.services.exceptions.StockNoValidoException
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.transaction.Transactional;
+import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -48,7 +49,11 @@ public class ProductService implements IProductService{
         }
 
         Path path = uploadDir.resolve(fileName);
-        Files.copy(image.getInputStream(), path);
+
+        // Usar Thumbnailator para redimensionar antes de guardar
+        Thumbnails.of(image.getInputStream())
+                .size(600, 600) // máximo ancho y alto
+                .toFile(path.toFile());
 
         // Devuelvo la URL accesible por el frontend
         return "/uploads/" + fileName;
@@ -69,31 +74,8 @@ public class ProductService implements IProductService{
         }
     }
 
-
-    @Transactional
-    @Override
-    public ProductResponseDTO addProduct(ProductRequestDTO productRequestDTO) {
-        Product product = productMapper.toEntity(productRequestDTO);
-
-        // Recibir imágen
-        try{
-            // Revisar si la imagen no esta vacia
-            if(productRequestDTO.image()!=null && !productRequestDTO.image().isEmpty()){
-
-                product.setUrlImage(imageToUrl(productRequestDTO.image()));
-            }
-        }catch (IOException e){
-            throw new RuntimeException("Error al guardar la imagen",e);
-        }
-
-        // Validar si categoría existe
-        product.setCategory(
-                categoryRepository.findById(productRequestDTO.categoryId()).
-                        orElseThrow(() -> new EntityNotFoundException("Categoria no encontrada"))
-        );
-
+    public List<ProductVariant>mapVariants(Product productEntity,Map<Long,Integer> variantesDTO){
         // Mapear el mismo producto de diferente talla
-        Map<Long,Integer> variantesDTO = productRequestDTO.productVariantRequestDTO().getVariants();
         List<ProductVariant> productVariants = new ArrayList<>();
         // Recorrer el diccionario que almacena los productos y guardarlos
         for(Map.Entry<Long, Integer> entry : variantesDTO.entrySet()){
@@ -106,39 +88,56 @@ public class ProductService implements IProductService{
                 productVariant.setSize(size);
                 productVariant.setStock(entry.getValue());
                 productVariants.add(productVariant);
-                productVariant.setProduct(product);
+                productVariant.setProduct(productEntity);
             }
         }
 
-        if(!productVariants.isEmpty()){
-            // Validar que se haya ingresado al menos un producto con stock > 0
-            for(ProductVariant productVariant : productVariants){
-                if(productVariant.getStock()>0){
-                    break;
-                }else{
-                    throw new StockNoValidoException("Al menos un producto deber tener un stock superior a 0");
-                }
-            }
-        }else{
+        if(productVariants.isEmpty()){
             throw new StockNoValidoException("Al menos un producto debe tener un stock superior a 0");
         }
-        product.setVariants(productVariants);
+        return productVariants;
+    }
 
 
+    @Transactional
+    @Override
+    public ProductResponseDTO addProduct(ProductRequestDTO productRequestDTO) {
+        Product product = productMapper.toEntity(productRequestDTO);
+        System.out.println("aqui se cae");
 
+        // Validar si categoría existe
+        product.setCategory(
+                categoryRepository.findById(productRequestDTO.categoryId()).
+                        orElseThrow(() -> new EntityNotFoundException("Categoria no encontrada"))
+        );
+
+        product.setVariants(mapVariants(product, productRequestDTO.productVariantRequestDTO().getVariants()));
+
+        System.out.println("aqui se cae");
         // Validar si la marca existe
         product.setBrand(
                 brandRepository.findById(productRequestDTO.brandId()).
                         orElseThrow(() -> new EntityNotFoundException("Marca no encontrada"))
         );
+        System.out.println("aqui se cae");
 
 
+        // Recibir imágen
+        try{
+            // Revisar si la imagen no esta vacia
+            if(productRequestDTO.image()!=null && !productRequestDTO.image().isEmpty()){
+
+                product.setUrlImage(imageToUrl(productRequestDTO.image()));
+            }
+        }catch (IOException e){
+            throw new RuntimeException("Error al guardar la imagen",e);
+        }
         product = productRepository.save(product);
         product.setName(product.getBrand().getBrand()+" "+product.getColor()+" "+product.getId());
 
         return productMapper.toResponseDTO(productRepository.save(product));
     }
-
+    @Transactional
     @Override
     public ProductResponseDTO updateProduct(Long id, ProductRequestDTO productRequestDTO) {
 
@@ -148,14 +147,17 @@ public class ProductService implements IProductService{
                 new EntityNotFoundException("Producto no encontrado"));
 
 
-        productEntity = productMapper.toEntity(productRequestDTO);
-        productEntity.setId(id);
+        productEntity.setColor(productRequestDTO.color());
+        productEntity.setPrice(productRequestDTO.price());
 
         // Validar si categoría existe
         productEntity.setCategory(
                 categoryRepository.findById(productRequestDTO.categoryId()).
                         orElseThrow(() -> new EntityNotFoundException("Categoria no encontrada"))
         );
+
+        productEntity.getVariants().clear();
+        productEntity.getVariants().addAll(mapVariants(productEntity,productRequestDTO.productVariantRequestDTO().getVariants()));
 
         // Validar si la marca existe
         productEntity.setBrand(
@@ -164,9 +166,21 @@ public class ProductService implements IProductService{
         );
 
 
-        productEntity.setName(productEntity.getBrand().getBrand()+productEntity.getColor()+productEntity.getId());
+        // Recibir imágen
 
-        return productMapper.toResponseDTO(productRepository.save(productEntity));
+        try{
+            // Revisar si la imagen no esta vacia
+            if(productRequestDTO.image()!=null && !productRequestDTO.image().isEmpty()){
+
+                productEntity.setUrlImage(imageToUrl(productRequestDTO.image()));
+            }
+        }catch (IOException e){
+            throw new RuntimeException("Error al guardar la imagen",e);
+        }
+        productEntity = productRepository.save(productEntity);
+        productEntity.setName(productEntity.getBrand().getBrand()+" "+productEntity.getColor()+" "+productEntity.getId());
+
+        return productMapper.toResponseDTO(productEntity);
 
     }
 

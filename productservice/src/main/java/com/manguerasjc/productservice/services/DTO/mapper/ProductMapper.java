@@ -29,8 +29,8 @@ public class ProductMapper {
         }
 
 
-        return new ProductResponseDTO(p.getId(),p.getCategory().getName()
-                ,p.getName(), p.getColor(),p.getBrand().getBrand().toString(),
+        return new ProductResponseDTO(p.getId(),p.getCategory().getName(), p.getCategory().getId()
+                ,p.getName(), p.getColor(),p.getBrand().getBrand().toString(), p.getBrand().getId(),
                 p.getPrice(),p.getUrlImage(),variantes
                 );
     }
