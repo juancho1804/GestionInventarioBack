@@ -12,5 +12,7 @@ public interface IProductService {
     ProductResponseDTO updateProduct(Long id, ProductRequestDTO productRequestDTO);
     void deleteProduct(Long id);
     List<ProductResponseDTO> getProducts();
+    List<ProductResponseDTO>getProductsByCategoryId(Long categoryId);
+    List<ProductResponseDTO>findProductsWithFilters(List<Long> categoryId, List<Long> brandId);
 
 }

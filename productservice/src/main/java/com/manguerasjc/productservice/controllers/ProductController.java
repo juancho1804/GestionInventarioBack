@@ -64,6 +64,16 @@ public class ProductController {
         return productService.getProducts();
 
     }
+
+    @GetMapping("/{categoryId}")
+    public List<ProductResponseDTO> getProductsByCategory(@PathVariable Long categoryId){
+        return productService.getProductsByCategoryId(categoryId);
+    }
+
+    @GetMapping("filter")
+    public List<ProductResponseDTO> getProductsFiltered(@RequestParam(required = false)List<Long>cats, @RequestParam(required = false) List<Long> brands){
+        return productService.findProductsWithFilters(cats,brands);
+    }
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         productService.deleteProduct(id);

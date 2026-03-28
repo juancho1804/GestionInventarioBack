@@ -1,5 +1,6 @@
 package com.manguerasjc.productservice.services.usercases;
 
+import com.manguerasjc.productservice.controllers.ProductController;
 import com.manguerasjc.productservice.dataAccess.domain.Category;
 import com.manguerasjc.productservice.dataAccess.domain.Product;
 import com.manguerasjc.productservice.dataAccess.domain.ProductVariant;
@@ -13,16 +14,28 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.transaction.Transactional;
 import net.coobird.thumbnailator.Thumbnails;
+import openize.heic.decoder.HeicImage;
+import openize.heic.decoder.PixelFormat;
+import openize.io.IOFileStream;
+import openize.io.IOMode;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,24 +52,110 @@ public class ProductService implements IProductService{
     ProductMapper productMapper;
 
     public String imageToUrl(MultipartFile image) throws IOException {
-        // Nombre único para evitar choques
-        String fileName = System.currentTimeMillis() + "_" + image.getOriginalFilename();
 
-        // Ruta relativa (carpeta en la raíz del proyecto)
-        Path uploadDir = Paths.get("uploads");
-        if (!Files.exists(uploadDir)) {
-            Files.createDirectories(uploadDir); // crea la carpeta si no existe
+        String originalName = image.getOriginalFilename();
+        if (originalName == null || originalName.isBlank()) {
+            throw new IllegalArgumentException("El archivo no tiene nombre");
         }
 
-        Path path = uploadDir.resolve(fileName);
+        boolean heic = originalName.toLowerCase().matches(".*\\.(heic|heif)$");
 
-        // Usar Thumbnailator para redimensionar antes de guardar
-        Thumbnails.of(image.getInputStream())
-                .size(600, 600) // máximo ancho y alto
-                .toFile(path.toFile());
+        String finalFileName = System.currentTimeMillis() + "_" +
+                (heic ? originalName.replaceAll("(?i)\\.(heic|heif)$", ".jpg")
+                        : originalName);
 
-        // Devuelvo la URL accesible por el frontend
-        return "/uploads/" + fileName;
+        Path uploadDir = Paths.get("uploads");
+        if (!Files.exists(uploadDir)) Files.createDirectories(uploadDir);
+
+        Path outputPath = uploadDir.resolve(finalFileName);
+
+        System.out.println("Procesando imagen: " + originalName + " heic=" + heic + " destino=" + outputPath);
+
+        if (heic) {
+            Path temp = Files.createTempFile("heic_", ".heic");
+            System.out.println("Temporal creado en: " + temp);
+            try {
+                image.transferTo(temp.toFile());
+                System.out.println("Archivo transferido, tamaño: " + Files.size(temp) + " bytes");
+
+                try (IOFileStream fs = new IOFileStream(temp.toString(), IOMode.READ)) {
+                    HeicImage heicImage = HeicImage.load(fs);
+                    System.out.println("HEIC cargado, dimensiones: " + heicImage.getWidth() + "x" + heicImage.getHeight());
+
+                    var frames = heicImage.getFrames();
+                    System.out.println("Frames encontrados: " + (frames == null ? "null" : frames.size()));
+
+                    if (frames == null || frames.isEmpty()) {
+                        throw new IOException("El archivo HEIC no contiene frames válidos");
+                    }
+
+                    int width  = (int) heicImage.getWidth();
+                    int height = (int) heicImage.getHeight();
+                    if (width <= 0 || height <= 0) {
+                        throw new IOException("Dimensiones inválidas: " + width + "x" + height);
+                    }
+
+                    BufferedImage buffered = null;
+
+                    for (var entry : frames.entrySet()) {
+                        try {
+                            var frame = entry.getValue();
+                            if (frame == null) {
+                                System.out.println("Frame " + entry.getKey() + " es null, saltando");
+                                continue;
+                            }
+
+                            int[] pixels = frame.getInt32Array(PixelFormat.Argb32);
+                            if (pixels == null || pixels.length != width * height) {
+                                System.out.println("Frame " + entry.getKey() + " tiene píxeles inválidos, saltando");
+                                continue;
+                            }
+
+                            buffered = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+                            buffered.setRGB(0, 0, width, height, pixels, 0, width);
+                            System.out.println("Frame válido encontrado: " + entry.getKey());
+                            break;
+
+                        } catch (Exception e) {
+                            System.out.println("Frame " + entry.getKey() + " falló (" + e.getMessage() + "), saltando");
+                        }
+                    }
+
+                    if (buffered == null) {
+                        throw new IOException("No se encontró ningún frame válido en el HEIC");
+                    }
+
+                    Thumbnails.of(buffered)
+                            .size(600, 600)
+                            .outputFormat("jpg")
+                            .toFile(outputPath.toFile());
+                    System.out.println("Thumbnail guardado en: " + outputPath);
+
+                } catch (IOException e) {
+                    throw e;
+                } catch (Exception e) {
+                    System.out.println("Fallo dentro del bloque HEIC: " + e);
+                    throw new IOException("Error procesando HEIC: " + e.getMessage(), e);
+                }
+
+            } finally {
+                Files.deleteIfExists(temp);
+                System.out.println("Temporal eliminado");
+            }
+
+        } else {
+            try {
+                Thumbnails.of(image.getInputStream())
+                        .size(600, 600)
+                        .toFile(outputPath.toFile());
+                System.out.println("Imagen normal guardada en: " + outputPath);
+            } catch (IOException e) {
+                System.out.println("Fallo procesando imagen normal: " + e);
+                throw new IOException("Error procesando la imagen: " + e.getMessage(), e);
+            }
+        }
+
+        return "/uploads/" + finalFileName;
     }
 
     public void deleteImage(String imageUrl) {
@@ -103,7 +202,6 @@ public class ProductService implements IProductService{
     @Override
     public ProductResponseDTO addProduct(ProductRequestDTO productRequestDTO) {
         Product product = productMapper.toEntity(productRequestDTO);
-        System.out.println("aqui se cae");
 
         // Validar si categoría existe
         product.setCategory(
@@ -113,13 +211,11 @@ public class ProductService implements IProductService{
 
         product.setVariants(mapVariants(product, productRequestDTO.productVariantRequestDTO().getVariants()));
 
-        System.out.println("aqui se cae");
         // Validar si la marca existe
         product.setBrand(
                 brandRepository.findById(productRequestDTO.brandId()).
                         orElseThrow(() -> new EntityNotFoundException("Marca no encontrada"))
         );
-        System.out.println("aqui se cae");
 
 
         // Recibir imágen
@@ -196,4 +292,20 @@ public class ProductService implements IProductService{
         return productRepository.findAll().stream().
                 map(p -> productMapper.toResponseDTO(p)).collect(Collectors.toList());
     }
+
+    @Override
+    public List<ProductResponseDTO>getProductsByCategoryId(Long categoryId){
+        List<Product> productsFilterByCategory = productRepository.findProductsByCategory_Id(categoryId);
+        return productsFilterByCategory.stream().map(
+                product -> productMapper.toResponseDTO(product)).collect(Collectors.toList());
+    }
+    @Override
+    public List<ProductResponseDTO>findProductsWithFilters(List<Long> categoriesIds, List<Long> brandsIds){
+        Specification<Product>spec = Specification.allOf(
+                        ProductSpecification.hasCategoriesIds(categoriesIds),
+                        ProductSpecification.hasBrandsIds(brandsIds));
+
+        return productRepository.findAll(spec).stream().map(product -> productMapper.toResponseDTO(product)).collect(Collectors.toList());
+    }
+
 }
