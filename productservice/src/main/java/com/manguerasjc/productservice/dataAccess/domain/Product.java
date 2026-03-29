@@ -37,8 +37,11 @@ public class Product {
     @Column(nullable = false)
     private double price;
 
-    @Column(nullable = false)
-    private String urlImage;
+    @ElementCollection
+    @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "url")
+    private List<String> urlImages = new ArrayList<>();
+
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductVariant>variants = new ArrayList<>();

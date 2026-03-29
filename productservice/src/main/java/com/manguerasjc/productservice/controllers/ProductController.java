@@ -29,14 +29,14 @@ public class ProductController {
             @RequestParam(value = "color") String color,
             @RequestParam(value = "brandId") Long brandId,
             @RequestParam(value = "price") Double price,
-            @RequestPart(value = "image", required = false) MultipartFile image,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
             @RequestPart(value = "productVariantRequest") String productVariantRequest
     ) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         ProductVariantRequestDTO productVariantRequestDTO =
                 mapper.readValue(productVariantRequest, ProductVariantRequestDTO.class);
 
-        ProductRequestDTO dto = new ProductRequestDTO(categoryId, color, brandId, price, image, productVariantRequestDTO);
+        ProductRequestDTO dto = new ProductRequestDTO(categoryId, color, brandId, price, null,images, productVariantRequestDTO);
 
         return productService.addProduct(dto);
     }
@@ -48,14 +48,15 @@ public class ProductController {
                                             @RequestParam("color") String color,
                                             @RequestParam("brandId") Long brandId,
                                             @RequestParam("price") Double price,
-                                            @RequestPart(value = "image", required = false) MultipartFile image,
+                                            @RequestParam(value = "existingImages", required = false)List<String>existingImages,
+                                            @RequestPart(value = "images", required = false) List<MultipartFile> images,
                                             @RequestPart("productVariantRequest") String productVariantRequestJson
     ) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         ProductVariantRequestDTO productVariantRequest =
                 mapper.readValue(productVariantRequestJson, ProductVariantRequestDTO.class);
 
-        ProductRequestDTO dto = new ProductRequestDTO(categoryId, color, brandId, price, image, productVariantRequest);
+        ProductRequestDTO dto = new ProductRequestDTO(categoryId, color, brandId, price, existingImages,images, productVariantRequest);
         return productService.updateProduct(id,dto);
     }
 

@@ -221,9 +221,11 @@ public class ProductService implements IProductService{
         // Recibir imágen
         try{
             // Revisar si la imagen no esta vacia
-            if(productRequestDTO.image()!=null && !productRequestDTO.image().isEmpty()){
-
-                product.setUrlImage(imageToUrl(productRequestDTO.image()));
+            if(productRequestDTO.images()!=null && !productRequestDTO.images().isEmpty()){
+                for(MultipartFile image: productRequestDTO.images()){
+                    System.out.println("Image: "+image);
+                    product.getUrlImages().add(imageToUrl(image));
+                }
             }
         }catch (IOException e){
             throw new RuntimeException("Error al guardar la imagen",e);
@@ -265,11 +267,25 @@ public class ProductService implements IProductService{
         // Recibir imágen
 
         try{
-            // Revisar si la imagen no esta vacia
-            if(productRequestDTO.image()!=null && !productRequestDTO.image().isEmpty()){
+// Borrar solo las imágenes que ya no están en existingImages
+            List<String> existing = productRequestDTO.existingImages() != null ? productRequestDTO.existingImages() : List.of();
 
-                productEntity.setUrlImage(imageToUrl(productRequestDTO.image()));
+            for (String url : productEntity.getUrlImages()) {
+                if (!existing.contains(url)) {
+                    deleteImage(url); // solo borra las que el usuario quitó
+                }
             }
+
+// Empezar con las existentes que se conservan
+            List<String> urlImagenes = new ArrayList<>(existing);
+
+// Agregar las nuevas
+            if (productRequestDTO.images() != null && !productRequestDTO.images().isEmpty()) {
+                for (MultipartFile image : productRequestDTO.images()) {
+                    urlImagenes.add(imageToUrl(image));
+                }
+            }
+            productEntity.setUrlImages(urlImagenes);
         }catch (IOException e){
             throw new RuntimeException("Error al guardar la imagen",e);
         }
@@ -283,7 +299,9 @@ public class ProductService implements IProductService{
     @Override
     public void deleteProduct(Long id) {
         Product productEntity = productRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Producto no encontrado"));
-        deleteImage(productEntity.getUrlImage());
+        for(String image:productEntity.getUrlImages()){
+            deleteImage(image);
+        }
         productRepository.deleteById(id);
     }
 

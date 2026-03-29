@@ -1,5 +1,6 @@
 package com.manguerasjc.productservice.services.DTO.response;
 
+import java.util.List;
 import java.util.Map;
 
 public record ProductResponseDTO(
@@ -11,7 +12,7 @@ public record ProductResponseDTO(
         String brand,
         int brandId,
         double price,
-        String urlImage,
+        List<String> urlImages,
         Map<String,Integer> variantes
 ) {
 }
