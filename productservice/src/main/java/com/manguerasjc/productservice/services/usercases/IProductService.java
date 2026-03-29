@@ -13,6 +13,6 @@ public interface IProductService {
     void deleteProduct(Long id);
     List<ProductResponseDTO> getProducts();
     List<ProductResponseDTO>getProductsByCategoryId(Long categoryId);
-    List<ProductResponseDTO>findProductsWithFilters(List<Long> categoryId, List<Long> brandId);
+    List<ProductResponseDTO>findProductsWithFilters(List<Long> categoryId, List<Long> brandId, List <Long>SizesIds);
 
 }

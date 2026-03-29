@@ -300,10 +300,11 @@ public class ProductService implements IProductService{
                 product -> productMapper.toResponseDTO(product)).collect(Collectors.toList());
     }
     @Override
-    public List<ProductResponseDTO>findProductsWithFilters(List<Long> categoriesIds, List<Long> brandsIds){
+    public List<ProductResponseDTO>findProductsWithFilters(List<Long> categoriesIds, List<Long> brandsIds, List<Long> sizesIds){
         Specification<Product>spec = Specification.allOf(
                         ProductSpecification.hasCategoriesIds(categoriesIds),
-                        ProductSpecification.hasBrandsIds(brandsIds));
+                        ProductSpecification.hasBrandsIds(brandsIds),
+                        ProductSpecification.hasSizesIds(sizesIds));
 
         return productRepository.findAll(spec).stream().map(product -> productMapper.toResponseDTO(product)).collect(Collectors.toList());
     }

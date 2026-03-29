@@ -21,4 +21,16 @@ public class ProductSpecification {
             return root.get("brand").get("id").in(brandsIds);
         };
     }
+
+    public static Specification<Product> hasSizesIds(List<Long> sizesIds) {
+        return (root, query, cb) -> {
+            if (sizesIds == null || sizesIds.isEmpty()) return null;
+
+            assert query != null;
+            query.distinct(true);
+
+            var variantsJoin = root.join("variants");
+            return variantsJoin.get("size").get("id").in(sizesIds);
+        };
+    }
 }

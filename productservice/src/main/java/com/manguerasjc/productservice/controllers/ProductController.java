@@ -71,8 +71,8 @@ public class ProductController {
     }
 
     @GetMapping("filter")
-    public List<ProductResponseDTO> getProductsFiltered(@RequestParam(required = false)List<Long>cats, @RequestParam(required = false) List<Long> brands){
-        return productService.findProductsWithFilters(cats,brands);
+    public List<ProductResponseDTO> getProductsFiltered(@RequestParam(required = false)List<Long>cats, @RequestParam(required = false) List<Long> brands, @RequestParam(required = false) List<Long>sizes){
+        return productService.findProductsWithFilters(cats,brands,sizes);
     }
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
