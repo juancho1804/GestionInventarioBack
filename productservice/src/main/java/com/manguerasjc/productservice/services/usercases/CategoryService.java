@@ -5,12 +5,10 @@ import com.manguerasjc.productservice.dataAccess.repositories.ICategoryRepositor
 import com.manguerasjc.productservice.services.DTO.request.CategoryRequestDTO;
 import com.manguerasjc.productservice.services.DTO.response.CategoryResponseDTO;
 import com.manguerasjc.productservice.services.DTO.mapper.CategoryMapper;
-import com.manguerasjc.productservice.services.exceptions.GlobalDefaultExceptionHandler;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.List;
 import java.util.Optional;

@@ -1,6 +1,5 @@
 package com.manguerasjc.productservice.services.usercases;
 
-import com.manguerasjc.productservice.dataAccess.domain.Category;
 import com.manguerasjc.productservice.dataAccess.domain.Product;
 import org.springframework.data.jpa.domain.Specification;
 

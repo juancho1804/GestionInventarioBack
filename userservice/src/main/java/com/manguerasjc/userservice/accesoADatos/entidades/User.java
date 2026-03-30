@@ -4,32 +4,34 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.HashSet;
 import java.util.Set;
 
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
 @Entity
-@Table(name = "users",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = "identificacion"),
-                @UniqueConstraint(columnNames = "email")
-        })
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @Column
-    private String tipoIdentificacion;
+    @ManyToOne
+    @JoinColumn(name = "tipo_identificacion_id")
+    private TipoIdentificacion tipoIdentificacion;
 
+    @Column
     private String identificacion;
 
+    @Column
     private String nombres;
 
+    @Column
     private String apellidos;
 
     @NotBlank
@@ -48,14 +50,4 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
-    public User() {
-    }
-
-    public User(String identificacion, String nombres, String apellidos, String email, String password) {
-        this.identificacion = identificacion;
-        this.nombres = nombres;
-        this.apellidos = apellidos;
-        this.email = email;
-        this.contrasenia = password;
-    }
 }

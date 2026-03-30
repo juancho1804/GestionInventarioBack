@@ -1,7 +1,5 @@
 package com.manguerasjc.productservice.services.usercases;
 
-import com.manguerasjc.productservice.controllers.ProductController;
-import com.manguerasjc.productservice.dataAccess.domain.Category;
 import com.manguerasjc.productservice.dataAccess.domain.Product;
 import com.manguerasjc.productservice.dataAccess.domain.ProductVariant;
 import com.manguerasjc.productservice.dataAccess.domain.Size;
@@ -11,31 +9,23 @@ import com.manguerasjc.productservice.services.DTO.request.ProductRequestDTO;
 import com.manguerasjc.productservice.services.DTO.response.ProductResponseDTO;
 import com.manguerasjc.productservice.services.exceptions.StockNoValidoException;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.transaction.Transactional;
 import net.coobird.thumbnailator.Thumbnails;
 import openize.heic.decoder.HeicImage;
 import openize.heic.decoder.PixelFormat;
 import openize.io.IOFileStream;
 import openize.io.IOMode;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
