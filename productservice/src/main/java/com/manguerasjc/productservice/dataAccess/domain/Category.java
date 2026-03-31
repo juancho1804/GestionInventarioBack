@@ -1,5 +1,6 @@
 package com.manguerasjc.productservice.dataAccess.domain;
 
+import com.manguerasjc.productservice.dataAccess.EGender;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,4 +18,9 @@ public class Category {
 
     @Column(nullable = false)
     private String name;
+
+    @Enumerated(EnumType.STRING)
+    private EGender gender;
+
+
 }

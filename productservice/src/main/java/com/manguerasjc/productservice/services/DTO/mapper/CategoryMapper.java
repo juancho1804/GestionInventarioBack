@@ -10,11 +10,12 @@ public class CategoryMapper {
     public Category toEntity(CategoryRequestDTO dto) {
         Category c = new Category();
         c.setName(dto.name());
+        c.setGender(dto.gender());
         return c;
     }
 
     public CategoryResponseDTO toResponseDTO(Category c) {
-        return new CategoryResponseDTO(c.getId(), c.getName());
+        return new CategoryResponseDTO(c.getId(), c.getName(), c.getGender().toString());
     }
 
 }
