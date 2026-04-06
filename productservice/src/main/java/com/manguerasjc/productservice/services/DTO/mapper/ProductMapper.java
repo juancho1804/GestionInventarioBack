@@ -15,7 +15,6 @@ public class ProductMapper {
     public Product toEntity(ProductRequestDTO dto) {
 
         Product p = new Product();
-        p.setColor(dto.color());
         p.setPrice(dto.price());
         return p;
     }
@@ -30,7 +29,7 @@ public class ProductMapper {
 
 
         return new ProductResponseDTO(p.getId(),p.getCategory().getName(), p.getCategory().getId()
-                ,p.getName(), p.getColor(),p.getBrand().getBrand().toString(), p.getBrand().getId(),
+                ,p.getName(), p.getColor().getId(),p.getBrand().getBrand().toString(), p.getBrand().getId(),
                 p.getPrice(),p.getUrlImages(),variantes
                 );
     }

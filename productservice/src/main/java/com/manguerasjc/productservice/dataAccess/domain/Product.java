@@ -27,9 +27,6 @@ public class Product {
     @Column
     private String name;
 
-    @Column(nullable = false)
-    private String color;
-
     @ManyToOne(fetch = FetchType.LAZY)
     private Brand brand;
 
@@ -45,6 +42,9 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductVariant>variants = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "color_id")
+    private Color color;
 
 
 }

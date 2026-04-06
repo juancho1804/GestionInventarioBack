@@ -14,5 +14,6 @@ public interface IProductService {
     List<ProductResponseDTO> getProducts();
     List<ProductResponseDTO>getProductsByCategoryId(Long categoryId);
     List<ProductResponseDTO>findProductsWithFilters(List<Long> categoryId, List<Long> brandId, List <Long>SizesIds);
+    ProductResponseDTO findById(Long productId);
 
 }

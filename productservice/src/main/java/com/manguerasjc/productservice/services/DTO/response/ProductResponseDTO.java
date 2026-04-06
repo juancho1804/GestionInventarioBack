@@ -8,7 +8,7 @@ public record ProductResponseDTO(
         String categoryName,
         Long categoryId,
         String name,
-        String color,
+        Long colorId,
         String brand,
         int brandId,
         double price,

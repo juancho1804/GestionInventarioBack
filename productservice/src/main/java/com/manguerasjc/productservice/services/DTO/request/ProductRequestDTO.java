@@ -7,7 +7,7 @@ import java.util.List;
 
 public record ProductRequestDTO(
         Long categoryId,
-        String color,
+        Long colorId,
         Long brandId,
         double price,
         List<String>existingImages,

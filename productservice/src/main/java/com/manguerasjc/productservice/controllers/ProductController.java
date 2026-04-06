@@ -23,7 +23,7 @@ public class ProductController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ProductResponseDTO addProduct(
             @RequestParam(value = "categoryId") Long categoryId,
-            @RequestParam(value = "color") String color,
+            @RequestParam(value = "colorId") Long colorId,
             @RequestParam(value = "brandId") Long brandId,
             @RequestParam(value = "price") Double price,
             @RequestPart(value = "images", required = false) List<MultipartFile> images,
@@ -33,7 +33,7 @@ public class ProductController {
         ProductVariantRequestDTO productVariantRequestDTO =
                 mapper.readValue(productVariantRequest, ProductVariantRequestDTO.class);
 
-        ProductRequestDTO dto = new ProductRequestDTO(categoryId, color, brandId, price, null,images, productVariantRequestDTO);
+        ProductRequestDTO dto = new ProductRequestDTO(categoryId, colorId, brandId, price, null,images, productVariantRequestDTO);
 
         return productService.addProduct(dto);
     }
@@ -42,7 +42,7 @@ public class ProductController {
     @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ProductResponseDTO updateProduct(@RequestParam Long id,
                                             @RequestParam("categoryId") Long categoryId,
-                                            @RequestParam("color") String color,
+                                            @RequestParam("colorId") Long colorId,
                                             @RequestParam("brandId") Long brandId,
                                             @RequestParam("price") Double price,
                                             @RequestParam(value = "existingImages", required = false)List<String>existingImages,
@@ -53,7 +53,7 @@ public class ProductController {
         ProductVariantRequestDTO productVariantRequest =
                 mapper.readValue(productVariantRequestJson, ProductVariantRequestDTO.class);
 
-        ProductRequestDTO dto = new ProductRequestDTO(categoryId, color, brandId, price, existingImages,images, productVariantRequest);
+        ProductRequestDTO dto = new ProductRequestDTO(categoryId, colorId, brandId, price, existingImages,images, productVariantRequest);
         return productService.updateProduct(id,dto);
     }
 
@@ -76,5 +76,9 @@ public class ProductController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
+    }
+    @GetMapping("/product/{id}")
+    public ProductResponseDTO findById(@PathVariable Long id){
+        return productService.findById(id);
     }
 }

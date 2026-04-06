@@ -39,6 +39,8 @@ public class ProductService implements IProductService{
     @Autowired
     ISizeRepository sizeRepository;
     @Autowired
+    IColorRepository colorRepository;
+    @Autowired
     ProductMapper productMapper;
 
     public String imageToUrl(MultipartFile image) throws IOException {
@@ -193,6 +195,14 @@ public class ProductService implements IProductService{
     public ProductResponseDTO addProduct(ProductRequestDTO productRequestDTO) {
         Product product = productMapper.toEntity(productRequestDTO);
 
+        System.out.println("llego aqui, el color es ");
+        // Validar si el color existe
+        product.setColor(
+                colorRepository.findById(productRequestDTO.colorId()).
+                        orElseThrow(() -> new EntityNotFoundException("Color no encontrado"))
+        );
+        System.out.println("llego aqui, el color es "+product.getColor().getName());
+
         // Validar si categoría existe
         product.setCategory(
                 categoryRepository.findById(productRequestDTO.categoryId()).
@@ -221,7 +231,7 @@ public class ProductService implements IProductService{
             throw new RuntimeException("Error al guardar la imagen",e);
         }
         product = productRepository.save(product);
-        product.setName(product.getBrand().getBrand()+" "+product.getColor()+" "+product.getId());
+        product.setName(product.getBrand().getBrand()+" "+product.getColor().getName()+" "+product.getId());
 
         return productMapper.toResponseDTO(productRepository.save(product));
     }
@@ -234,8 +244,12 @@ public class ProductService implements IProductService{
         Product productEntity = productRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Producto no encontrado"));
 
+        // Validar si el color existe
+        productEntity.setColor(
+                colorRepository.findById(productRequestDTO.colorId()).
+                        orElseThrow(() -> new EntityNotFoundException("Color no encontrado"))
+        );
 
-        productEntity.setColor(productRequestDTO.color());
         productEntity.setPrice(productRequestDTO.price());
 
         // Validar si categoría existe
@@ -280,7 +294,7 @@ public class ProductService implements IProductService{
             throw new RuntimeException("Error al guardar la imagen",e);
         }
         productEntity = productRepository.save(productEntity);
-        productEntity.setName(productEntity.getBrand().getBrand()+" "+productEntity.getColor()+" "+productEntity.getId());
+        productEntity.setName(productEntity.getBrand().getBrand()+" "+productEntity.getColor().getName()+" "+productEntity.getId());
 
         return productMapper.toResponseDTO(productEntity);
 
@@ -315,6 +329,12 @@ public class ProductService implements IProductService{
                         ProductSpecification.hasSizesIds(sizesIds));
 
         return productRepository.findAll(spec).stream().map(product -> productMapper.toResponseDTO(product)).collect(Collectors.toList());
+    }
+
+    @Override
+    public ProductResponseDTO findById(Long productId) {
+        Product product = productRepository.findById(productId).orElseThrow(()->new EntityNotFoundException("No se encontro el producto."));
+        return productMapper.toResponseDTO(product);
     }
 
 }
