@@ -5,14 +5,14 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.3</version>
+        <version>3.5.13</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.manguerasjc</groupId>
-    <artifactId>productservice</artifactId>
+    <groupId>org.example</groupId>
+    <artifactId>gatewayservice</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>productservice</name>
-    <description>productservice</description>
+    <name>gatewayservice</name>
+    <description>gatewayservice</description>
     <url/>
     <licenses>
         <license/>
@@ -28,34 +28,19 @@
     </scm>
     <properties>
         <java.version>17</java.version>
+        <spring-cloud.version>2025.0.1</spring-cloud.version>
     </properties>
-    <repositories>
-        <repository>
-            <id>AsposeJavaRepo</id>
-            <name>Aspose Java Repository</name>
-            <url>https://releases.aspose.com/java/repo/</url>
-        </repository>
-    </repositories>
     <dependencies>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -66,35 +51,36 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- https://mvnrepository.com/artifact/net.coobird/thumbnailator -->
+        <!-- JWT (mismas que en userservice) -->
         <dependency>
-            <groupId>net.coobird</groupId>
-            <artifactId>thumbnailator</artifactId>
-            <version>0.4.20</version>
-        </dependency>
-
-
-        <dependency>
-            <groupId>openize</groupId>
-            <artifactId>openize-heic</artifactId>
-            <version>25.4</version>
-        </dependency>
-
-
-        <dependency>
-            <groupId>openize</groupId>
-            <artifactId>openize-heic</artifactId>
-            <version>25.4</version>
-            <classifier>javadoc</classifier>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.11.5</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
-
-
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>
