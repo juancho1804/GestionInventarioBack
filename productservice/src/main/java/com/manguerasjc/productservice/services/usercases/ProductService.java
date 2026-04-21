@@ -56,7 +56,7 @@ public class ProductService implements IProductService{
                 "width", 600,
                 "height", 600,
                 "crop", "limit",
-                "quality", "80"
+                "quality", "100"
         ));
 
         return (String) uploadResult.get("secure_url");
