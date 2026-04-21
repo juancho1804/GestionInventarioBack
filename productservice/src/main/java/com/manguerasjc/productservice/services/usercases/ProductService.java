@@ -57,21 +57,42 @@ public class ProductService implements IProductService{
             throw new IllegalArgumentException("La imagen no puede superar 10MB");
         }
 
-        // 👇 Leer con ImageIO primero para liberar memoria de imagen de alta resolución
+        // 1. Leer imagen original
         BufferedImage original = ImageIO.read(image.getInputStream());
         if (original == null) {
             throw new IOException("No se pudo leer la imagen");
         }
 
+        // 2. Pre-escalar si es muy grande (más de 1200px en cualquier dimensión)
+        BufferedImage paraRedimensionar = original;
+        int maxDim = Math.max(original.getWidth(), original.getHeight());
+        if (maxDim > 1200) {
+            double scale = 1200.0 / maxDim;
+            int newW = (int) (original.getWidth() * scale);
+            int newH = (int) (original.getHeight() * scale);
+
+            // AffineTransform usa mucho menos memoria que Thumbnailator para este paso
+            BufferedImage preScaled = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
+            java.awt.Graphics2D g = preScaled.createGraphics();
+            g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                    java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.drawImage(original, 0, 0, newW, newH, null);
+            g.dispose();
+
+            original.flush(); // 👈 libera los 12MP de memoria
+            paraRedimensionar = preScaled;
+        }
+
+        // 3. Ahora Thumbnailator trabaja con imagen pequeña (~1200px)
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Thumbnails.of(original)
+        Thumbnails.of(paraRedimensionar)
                 .size(600, 600)
                 .outputFormat("jpg")
                 .outputQuality(0.80)
                 .keepAspectRatio(true)
                 .toOutputStream(baos);
 
-        original.flush(); // 👈 libera la imagen original de memoria
+        paraRedimensionar.flush();
         byte[] imageBytes = baos.toByteArray();
         baos.close();
 
