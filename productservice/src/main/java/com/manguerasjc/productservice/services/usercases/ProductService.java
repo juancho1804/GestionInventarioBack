@@ -22,6 +22,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
@@ -55,18 +57,24 @@ public class ProductService implements IProductService{
             throw new IllegalArgumentException("La imagen no puede superar 10MB");
         }
 
-        // Redimensionar a 600x600 y convertir a bytes
+        // 👇 Leer con ImageIO primero para liberar memoria de imagen de alta resolución
+        BufferedImage original = ImageIO.read(image.getInputStream());
+        if (original == null) {
+            throw new IOException("No se pudo leer la imagen");
+        }
+
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Thumbnails.of(image.getInputStream())
+        Thumbnails.of(original)
                 .size(600, 600)
                 .outputFormat("jpg")
                 .outputQuality(0.80)
                 .keepAspectRatio(true)
                 .toOutputStream(baos);
+
+        original.flush(); // 👈 libera la imagen original de memoria
         byte[] imageBytes = baos.toByteArray();
         baos.close();
 
-        // Subir a Cloudinary
         Map uploadResult = cloudinary.uploader().upload(imageBytes, ObjectUtils.asMap(
                 "folder", "products",
                 "resource_type", "image"
