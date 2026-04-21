@@ -1,5 +1,7 @@
 package com.manguerasjc.productservice.services.usercases;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.manguerasjc.productservice.dataAccess.domain.Product;
 import com.manguerasjc.productservice.dataAccess.domain.ProductVariant;
 import com.manguerasjc.productservice.dataAccess.domain.Size;
@@ -20,11 +22,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -42,6 +41,8 @@ public class ProductService implements IProductService{
     IColorRepository colorRepository;
     @Autowired
     ProductMapper productMapper;
+    @Autowired
+    private Cloudinary cloudinary;
 
     public String imageToUrl(MultipartFile image) throws IOException {
 
@@ -50,117 +51,31 @@ public class ProductService implements IProductService{
             throw new IllegalArgumentException("El archivo no tiene nombre");
         }
 
-        boolean heic = originalName.toLowerCase().matches(".*\\.(heic|heif)$");
+        // Redimensionar a 600x600 y convertir a bytes
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Thumbnails.of(image.getInputStream())
+                .size(600, 600)
+                .outputFormat("jpg")
+                .toOutputStream(baos);
 
-        String finalFileName = System.currentTimeMillis() + "_" +
-                (heic ? originalName.replaceAll("(?i)\\.(heic|heif)$", ".jpg")
-                        : originalName);
+        // Subir a Cloudinary
+        Map uploadResult = cloudinary.uploader().upload(baos.toByteArray(), ObjectUtils.asMap(
+                "folder", "products",
+                "resource_type", "image"
+        ));
 
-        Path uploadDir = Paths.get("uploads");
-        if (!Files.exists(uploadDir)) Files.createDirectories(uploadDir);
-
-        Path outputPath = uploadDir.resolve(finalFileName);
-
-        System.out.println("Procesando imagen: " + originalName + " heic=" + heic + " destino=" + outputPath);
-
-        if (heic) {
-            Path temp = Files.createTempFile("heic_", ".heic");
-            System.out.println("Temporal creado en: " + temp);
-            try {
-                image.transferTo(temp.toFile());
-                System.out.println("Archivo transferido, tamaño: " + Files.size(temp) + " bytes");
-
-                try (IOFileStream fs = new IOFileStream(temp.toString(), IOMode.READ)) {
-                    HeicImage heicImage = HeicImage.load(fs);
-                    System.out.println("HEIC cargado, dimensiones: " + heicImage.getWidth() + "x" + heicImage.getHeight());
-
-                    var frames = heicImage.getFrames();
-                    System.out.println("Frames encontrados: " + (frames == null ? "null" : frames.size()));
-
-                    if (frames == null || frames.isEmpty()) {
-                        throw new IOException("El archivo HEIC no contiene frames válidos");
-                    }
-
-                    int width  = (int) heicImage.getWidth();
-                    int height = (int) heicImage.getHeight();
-                    if (width <= 0 || height <= 0) {
-                        throw new IOException("Dimensiones inválidas: " + width + "x" + height);
-                    }
-
-                    BufferedImage buffered = null;
-
-                    for (var entry : frames.entrySet()) {
-                        try {
-                            var frame = entry.getValue();
-                            if (frame == null) {
-                                System.out.println("Frame " + entry.getKey() + " es null, saltando");
-                                continue;
-                            }
-
-                            int[] pixels = frame.getInt32Array(PixelFormat.Argb32);
-                            if (pixels == null || pixels.length != width * height) {
-                                System.out.println("Frame " + entry.getKey() + " tiene píxeles inválidos, saltando");
-                                continue;
-                            }
-
-                            buffered = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-                            buffered.setRGB(0, 0, width, height, pixels, 0, width);
-                            System.out.println("Frame válido encontrado: " + entry.getKey());
-                            break;
-
-                        } catch (Exception e) {
-                            System.out.println("Frame " + entry.getKey() + " falló (" + e.getMessage() + "), saltando");
-                        }
-                    }
-
-                    if (buffered == null) {
-                        throw new IOException("No se encontró ningún frame válido en el HEIC");
-                    }
-
-                    Thumbnails.of(buffered)
-                            .size(600, 600)
-                            .outputFormat("jpg")
-                            .toFile(outputPath.toFile());
-                    System.out.println("Thumbnail guardado en: " + outputPath);
-
-                } catch (IOException e) {
-                    throw e;
-                } catch (Exception e) {
-                    System.out.println("Fallo dentro del bloque HEIC: " + e);
-                    throw new IOException("Error procesando HEIC: " + e.getMessage(), e);
-                }
-
-            } finally {
-                Files.deleteIfExists(temp);
-                System.out.println("Temporal eliminado");
-            }
-
-        } else {
-            try {
-                Thumbnails.of(image.getInputStream())
-                        .size(600, 600)
-                        .toFile(outputPath.toFile());
-                System.out.println("Imagen normal guardada en: " + outputPath);
-            } catch (IOException e) {
-                System.out.println("Fallo procesando imagen normal: " + e);
-                throw new IOException("Error procesando la imagen: " + e.getMessage(), e);
-            }
-        }
-
-        return "/uploads/" + finalFileName;
+        return (String) uploadResult.get("secure_url");
     }
-
     public void deleteImage(String imageUrl) {
         if (imageUrl != null && !imageUrl.isEmpty()) {
             try {
                 // imageUrl = "/uploads/12345_nombre.png"
-                String fileName = Paths.get(imageUrl).getFileName().toString();
-                Path uploadDir = Paths.get("uploads"); // misma carpeta donde las guardas
-                Path filePath = uploadDir.resolve(fileName);
-
-                Files.deleteIfExists(filePath);
-            } catch (IOException e) {
-                throw new RuntimeException("Error al eliminar la imagen: " + imageUrl, e);
+                String publicId = imageUrl
+                        .replaceAll("https://res.cloudinary.com/[^/]+/image/upload/v\\d+/", "")
+                        .replaceAll("\\.[^.]+$", "");
+                cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "image"));
+            } catch (Exception e) {
+                throw new RuntimeException("Error al eliminar la imagen en Cloudinary: " + imageUrl, e);
             }
         }
     }
