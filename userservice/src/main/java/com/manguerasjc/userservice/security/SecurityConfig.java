@@ -24,7 +24,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/register", "/auth/signin").permitAll() // públicas
+                        .requestMatchers("/auth/register", "/auth/signin","/auth/wakeup").permitAll() // públicas
                         .requestMatchers("/admin/**").hasRole("ADMIN")                 // solo admin
                         .anyRequest().authenticated()                                   // resto requiere token
                 )
