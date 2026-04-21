@@ -53,15 +53,10 @@ public class ProductService implements IProductService{
         Map uploadResult = cloudinary.uploader().upload(image.getBytes(), ObjectUtils.asMap(
                 "folder", "products",
                 "resource_type", "image",
-                "transformation", Arrays.asList(
-                        ObjectUtils.asMap(
-                                "width", 600,
-                                "height", 600,
-                                "crop", "limit",
-                                "quality", "80",
-                                "fetch_format", "auto"
-                        )
-                )
+                "width", 600,
+                "height", 600,
+                "crop", "limit",
+                "quality", "80"
         ));
 
         return (String) uploadResult.get("secure_url");
