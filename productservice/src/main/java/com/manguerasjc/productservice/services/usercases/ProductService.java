@@ -2,6 +2,9 @@ package com.manguerasjc.productservice.services.usercases;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.exif.ExifIFD0Directory;
 import com.manguerasjc.productservice.dataAccess.domain.Product;
 import com.manguerasjc.productservice.dataAccess.domain.ProductVariant;
 import com.manguerasjc.productservice.dataAccess.domain.Size;
@@ -24,8 +27,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -46,6 +51,42 @@ public class ProductService implements IProductService{
     @Autowired
     private Cloudinary cloudinary;
 
+    private BufferedImage corregirOrientacion(BufferedImage img, InputStream inputStream) {
+        try {
+            Metadata metadata = ImageMetadataReader.readMetadata(inputStream);
+            ExifIFD0Directory directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
+            if (directory == null || !directory.containsTag(ExifIFD0Directory.TAG_ORIENTATION)) {
+                return img;
+            }
+
+            int orientation = directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
+            int degrees = switch (orientation) {
+                case 3 -> 180;
+                case 6 -> 90;
+                case 8 -> 270;
+                default -> 0;
+            };
+
+            if (degrees == 0) return img;
+
+            boolean swap = degrees == 90 || degrees == 270;
+            int newW = swap ? img.getHeight() : img.getWidth();
+            int newH = swap ? img.getWidth() : img.getHeight();
+
+            BufferedImage rotated = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
+            java.awt.Graphics2D g = rotated.createGraphics();
+            g.translate(newW / 2.0, newH / 2.0);
+            g.rotate(Math.toRadians(degrees));
+            g.translate(-img.getWidth() / 2.0, -img.getHeight() / 2.0);
+            g.drawImage(img, 0, 0, null);
+            g.dispose();
+            return rotated;
+
+        } catch (Exception e) {
+            return img; // si falla, devuelve la imagen sin rotar
+        }
+    }
+
     public String imageToUrl(MultipartFile image) throws IOException {
 
         String originalName = image.getOriginalFilename();
@@ -57,13 +98,18 @@ public class ProductService implements IProductService{
             throw new IllegalArgumentException("La imagen no puede superar 10MB");
         }
 
-        // 1. Leer imagen original
-        BufferedImage original = ImageIO.read(image.getInputStream());
+        // 👇 Guardar bytes para poder leer el stream dos veces
+        byte[] rawBytes = image.getBytes();
+
+        BufferedImage original = ImageIO.read(new ByteArrayInputStream(rawBytes));
         if (original == null) {
             throw new IOException("No se pudo leer la imagen");
         }
 
-        // 2. Pre-escalar si es muy grande (más de 1200px en cualquier dimensión)
+        // 👇 Corregir orientación EXIF
+        original = corregirOrientacion(original, new ByteArrayInputStream(rawBytes));
+
+        // Pre-escalar si es muy grande
         BufferedImage paraRedimensionar = original;
         int maxDim = Math.max(original.getWidth(), original.getHeight());
         if (maxDim > 1200) {
@@ -71,7 +117,6 @@ public class ProductService implements IProductService{
             int newW = (int) (original.getWidth() * scale);
             int newH = (int) (original.getHeight() * scale);
 
-            // AffineTransform usa mucho menos memoria que Thumbnailator para este paso
             BufferedImage preScaled = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
             java.awt.Graphics2D g = preScaled.createGraphics();
             g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
@@ -79,11 +124,10 @@ public class ProductService implements IProductService{
             g.drawImage(original, 0, 0, newW, newH, null);
             g.dispose();
 
-            original.flush(); // 👈 libera los 12MP de memoria
+            original.flush();
             paraRedimensionar = preScaled;
         }
 
-        // 3. Ahora Thumbnailator trabaja con imagen pequeña (~1200px)
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Thumbnails.of(paraRedimensionar)
                 .size(600, 600)
