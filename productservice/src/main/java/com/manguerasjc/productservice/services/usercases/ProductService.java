@@ -51,15 +51,23 @@ public class ProductService implements IProductService{
             throw new IllegalArgumentException("El archivo no tiene nombre");
         }
 
+        if (image.getSize() > 10 * 1024 * 1024) {
+            throw new IllegalArgumentException("La imagen no puede superar 10MB");
+        }
+
         // Redimensionar a 600x600 y convertir a bytes
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Thumbnails.of(image.getInputStream())
                 .size(600, 600)
                 .outputFormat("jpg")
+                .outputQuality(0.80)
+                .keepAspectRatio(true)
                 .toOutputStream(baos);
+        byte[] imageBytes = baos.toByteArray();
+        baos.close();
 
         // Subir a Cloudinary
-        Map uploadResult = cloudinary.uploader().upload(baos.toByteArray(), ObjectUtils.asMap(
+        Map uploadResult = cloudinary.uploader().upload(imageBytes, ObjectUtils.asMap(
                 "folder", "products",
                 "resource_type", "image"
         ));
