@@ -19,6 +19,7 @@ public class BrandService implements IBrandService {
     }
 
     public Brand addBrand(Brand brand){
+        System.out.println(brand.getBrand());
         return brandRepository.save(brand);
     }
 
