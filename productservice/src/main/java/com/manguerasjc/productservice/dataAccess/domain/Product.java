@@ -46,5 +46,9 @@ public class Product {
     @JoinColumn(name = "color_id")
     private Color color;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = true )
+    @JoinColumn(name = "collection_id")
+    private Collection collection;
+
 
 }
