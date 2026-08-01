@@ -9,7 +9,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/colors")
-public class ColorController {
+public class ColorController{
 
     @Autowired
     private IColorService colorService;
