@@ -32,4 +32,23 @@ public class ProductSpecification {
             return variantsJoin.get("size").get("id").in(sizesIds);
         };
     }
+
+    public static Specification<Product> hasPriceBetween(Double minPrice, Double maxPrice) {
+        return (root, query, cb) -> {
+
+            if (minPrice == null && maxPrice == null) {
+                return null;
+            }
+
+            if (minPrice != null && maxPrice != null) {
+                return cb.between(root.get("price"), minPrice, maxPrice);
+            }
+
+            if (minPrice != null) {
+                return cb.greaterThanOrEqualTo(root.get("price"), minPrice);
+            }
+
+            return cb.lessThanOrEqualTo(root.get("price"), maxPrice);
+        };
+    }
 }

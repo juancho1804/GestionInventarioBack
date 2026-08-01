@@ -232,11 +232,12 @@ public class ProductService implements IProductService{
                 product -> productMapper.toResponseDTO(product)).collect(Collectors.toList());
     }
     @Override
-    public List<ProductResponseDTO>findProductsWithFilters(List<Long> categoriesIds, List<Long> brandsIds, List<Long> sizesIds){
+    public List<ProductResponseDTO>findProductsWithFilters(List<Long> categoriesIds, List<Long> brandsIds, List<Long> sizesIds, Double minPrice, Double maxPrice){
         Specification<Product>spec = Specification.allOf(
                         ProductSpecification.hasCategoriesIds(categoriesIds),
                         ProductSpecification.hasBrandsIds(brandsIds),
-                        ProductSpecification.hasSizesIds(sizesIds));
+                        ProductSpecification.hasSizesIds(sizesIds),
+                        ProductSpecification.hasPriceBetween(minPrice,maxPrice));
 
         return productRepository.findAll(spec).stream().map(product -> productMapper.toResponseDTO(product)).collect(Collectors.toList());
     }
