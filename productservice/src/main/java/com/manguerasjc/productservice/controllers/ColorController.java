@@ -24,8 +24,8 @@ public class ColorController{
         return colorService.getColors();
     }
 
-    @DeleteMapping
-    public Boolean deleteColor(@RequestParam Long id){
+    @DeleteMapping("/{id}")
+    public Boolean deleteColor(@PathVariable Long id){
         return colorService.deleteColor(id);
     }
 
