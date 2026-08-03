@@ -12,7 +12,6 @@ public class Brand {
     @Column(nullable = false)
     private int id;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private EBrand brand;
+    private String brand;
 }
